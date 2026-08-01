@@ -127,7 +127,7 @@
             return;
         }
 
-                // PHASE 3: NAME & DATUM EXTRAHIEREN (Zwei-Zahlen-Staubsauger)
+        // PHASE 3: NAME & DATUM EXTRAHIEREN
         if (phase === 3) {
             if (zuschauerName === "") {
                 let ersteWorte = text.split(" ");
@@ -188,11 +188,9 @@
         }
     };
 
-    // AUTOMATISCHER NEUSTART DER SPRACHERKENNUNG BEI PAUSEN
     recognition.onend = () => { if (phase < 4) recognition.start(); };
     recognition.start();
 
-    // NOTAUSSTIEG (3 Sekunden oben links in der Ecke halten setzt alles komplett zurück)
     let exitTimer;
     document.getElementById('emergency-exit').addEventListener('touchstart', () => {
         exitTimer = setTimeout(() => { window.location.reload(); }, 3000);
