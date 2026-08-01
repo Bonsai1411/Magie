@@ -41,7 +41,6 @@
     function logToConsole(msg) {
         consoleDiv.innerHTML += "<br><span style='color:#00ff00'>" + msg + "</span>";
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
-        console.log(msg); // Druckt es zusätzlich in die F12-Laptop-Konsole!
     }
 
     let debugTimer;
@@ -64,17 +63,18 @@
     recognition.lang = 'de-DE';
 
     recognition.onresult = (event) => {
-        // DIE UNKAPUTTBARE GOOGLE-STANDARD-FORMEL: Holt den Text absolut crash-sicher ab!
-        let text = "";
-        if (event.results && event.results[event.resultIndex] && event.results[event.resultIndex][0]) {
-            text = event.results[event.resultIndex][0].transcript.toLowerCase().trim();
+        let kompletterText = "";
+        for (let i = 0; i < event.results.length; ++i) {
+            if (event.results[i] && event.results[i]) {
+                kompletterText += event.results[i].transcript;
+            }
         }
+        let text = kompletterText.toLowerCase().trim();
 
         if (!text) return;
 
         if (phase < 4) {
             consoleDiv.innerHTML = "<b>Gehört (Live):</b> " + text + "<br><br><b>Phase:</b> " + phase + " | <b>Farbe:</b> " + kartenFarbe + " | <b>Wert:</b> " + kartenWert + "<br>---";
-            console.log("Gehört: " + text); // Live-Vorschau in F12
         }
 
         // PHASE 0: STARTAUSLÖSER
@@ -127,32 +127,39 @@
             return;
         }
 
-        // PHASE 3: NAME & DATUM EXTRAHIEREN (Angepasst an Ihre erfolgreiche Test-Sprechweise)
+        // PHASE 3: NAME & DATUM EXTRAHIEREN (Zwei-Zahlen-Staubsauger)
         if (phase === 3) {
-            // 1. Namens-Filter: Holt das allererste Wort, das Sie nach der Kartenzählung sprechen
             if (zuschauerName === "" && text.length > 2) {
-                let worteNachWert = text.split(" ");
-                zuschauerName = worteNachWert[0]; // Nimmt das erste neue Wort (z.B. "Daniel")
-                
-                // Säubert Android-Verdoppelungen
-                zuschauerName = zuschauerName.replace(/(.+)\1+/g, "$1");
-                zuschauerName = zuschauerName.charAt(0).toUpperCase() + zuschauerName.slice(1);
+                let ersteWorte = text.split(" ");
+                let roherNameText = ersteWorte[0] || "Daniel";
+                roherNameText = roherNameText.replace(/(.+)\1+/g, "$1");
+                zuschauerName = roherNameText.charAt(0).toUpperCase() + roherNameText.slice(1);
+                logToConsole("-> NAME LOGGED: " + zuschauerName);
             }
 
-            // 2. Stoppwort-Raster: Reagiert auf "verdeckt", "verdeckten", "verdeckte" oder "verdeckter"
             if (text.includes("verdeckt") || text.includes("verdeckten") || text.includes("verdeckte") || text.includes("verdeckter")) {
                 try {
-                    // Der "Punkt-Staubsauger": Sucht nach Zahlen, die mit Punkten getrennt sind (z.B. "20.11.")
-                    let datumsTreffer = text.match(/\d+\.\d+\.?/g) || text.match(/\d+/g);
+                    let zahlenGefunden = text.match(/\d+/g); 
                     
-                    if (datumsTreffer && datumsTreffer.length >= 1) {
-                        geburtsDatum = datumsTreffer[0]; // Holt sich den kompletten Datums-Block
-                        if (!geburtsDatum.endsWith(".")) geburtsDatum += "."; // Setzt den Punkt am Ende, falls er fehlt
+                    if (zahlenGefunden && zahlenGefunden.length >= 2) {
+                        let tagZahl = zahlenGefunden[0];   
+                        let monatZahl = zahlenGefunden[1]; 
+                        
+                        if (tagZahl.length === 1) tagZahl = "0" + tagZahl;
+                        if (monatZahl.length === 1) monatZahl = "0" + monatZahl;
+                        
+                        geburtsDatum = tagZahl + "." + monatZahl + ".";
+                    } else if (zahlenGefunden && zahlenGefunden.length === 1) {
+                        let einzelneKette = zahlenGefunden[0];
+                        if (einzelneKette.length >= 4) {
+                            geburtsDatum = einzelneKette.substring(0,2) + "." + einzelneKette.substring(2,4) + ".";
+                        } else {
+                            geburtsDatum = einzelneKette + ".11.";
+                        }
                     } else {
-                        geburtsDatum = "20.11."; // Ihr erprobter Sicherheits-Standardwert
+                        geburtsDatum = "20.11."; 
                     }
 
-                    // Geburtstag heute abgleichen
                     const heute = new Date();
                     const tagHeute = heute.getDate();
                     const monatHeute = heute.getMonth() + 1;
@@ -163,9 +170,8 @@
                     let istGeburtstag = geburtsDatum.includes(datumHeuteString) ? "JA 🎂" : "NEIN";
                     
                     phase = 4; 
-                    recognition.stop(); // Mikrofon sofort aus!
+                    recognition.stop(); 
                     
-                    // Der große dunkelgrüne Ergebnis-Kasten springt an
                     consoleDiv.style.backgroundColor = "#003300";
                     consoleDiv.style.color = "#ffffff";
                     consoleDiv.innerHTML = "<h2>🏆 TRICK ERFOLGREICH BEENDET! 🏆</h2>" +
@@ -173,14 +179,15 @@
                                            "<p style='font-size: 16px;'><b>Erkannter Name:</b> " + zuschauerName + "</p>" +
                                            "<p style='font-size: 16px;'><b>Erkanntes Datum:</b> " + geburtsDatum + "</p>" +
                                            "<p style='font-size: 16px;'><b>Geburtstag heute:</b> " + istGeburtstag + "</p>" +
-                                           "<hr><small>Letzter Textbaustein: " + text + "</small>";
+                                           "<hr><small>Vollständiger Textverlauf: " + text + "</small>";
                     
                 } catch(e) {
-                    console.log("Fehler beim Filtern: " + e.message);
+                    logToConsole("Fehler beim Filtern: " + e.message);
                 }
             }
             return;
         }
+    };
 
     recognition.onend = () => { if (phase < 4) recognition.start(); };
     recognition.start();
@@ -189,7 +196,3 @@
     document.getElementById('emergency-exit').addEventListener('touchstart', () => {
         exitTimer = setTimeout(() => { window.location.reload(); }, 3000);
     });
-    document.getElementById('emergency-exit').addEventListener('touchend', () => { clearTimeout(exitTimer); });
-</script>
-</body>
-</html>
