@@ -41,6 +41,7 @@
     function logToConsole(msg) {
         consoleDiv.innerHTML += "<br><span style='color:#00ff00'>" + msg + "</span>";
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        console.log(msg); // Druckt es zusätzlich in die F12-Laptop-Konsole!
     }
 
     let debugTimer;
@@ -63,18 +64,17 @@
     recognition.lang = 'de-DE';
 
     recognition.onresult = (event) => {
-        let kompletterText = "";
-        for (let i = 0; i < event.results.length; ++i) {
-            if (event.results[i] && event.results[i]) {
-                kompletterText += event.results[i].transcript;
-            }
+        // DIE UNKAPUTTBARE GOOGLE-STANDARD-FORMEL: Holt den Text absolut crash-sicher ab!
+        let text = "";
+        if (event.results && event.results[event.resultIndex] && event.results[event.resultIndex][0]) {
+            text = event.results[event.resultIndex][0].transcript.toLowerCase().trim();
         }
-        let text = kompletterText.toLowerCase().trim();
 
         if (!text) return;
 
         if (phase < 4) {
             consoleDiv.innerHTML = "<b>Gehört (Live):</b> " + text + "<br><br><b>Phase:</b> " + phase + " | <b>Farbe:</b> " + kartenFarbe + " | <b>Wert:</b> " + kartenWert + "<br>---";
+            console.log("Gehört: " + text); // Live-Vorschau in F12
         }
 
         // PHASE 0: STARTAUSLÖSER
@@ -103,7 +103,7 @@
             }
         }
 
-        // PHASE 2: WERT RECHNEN (Hier wurde der Fehler "Pattern" restlos in "jetzt" korrigiert!)
+        // PHASE 2: WERT RECHNEN
         if (phase === 2) {
             let jetzt = Date.now();
             
@@ -129,34 +129,27 @@
 
         // PHASE 3: NAME & DATUM EXTRAHIEREN
         if (phase === 3) {
+            if (zuschauerName === "" && text.length > 2) {
+                let ersteWorte = text.split(" ");
+                let roherNameText = ersteWorte[0] || "Daniel";
+                roherNameText = roherNameText.replace(/(.+)\1+/g, "$1");
+                zuschauerName = roherNameText.charAt(0).toUpperCase() + roherNameText.slice(1);
+                logToConsole("-> NAME LOGGED: " + zuschauerName);
+            }
+
+            let zahlen = text.match(/\d+/g);
+            if (zahlen && zahlen.length >= 1) {
+                let roheZahl = zahlen.join("");
+                if (roheZahl.length >= 4) {
+                    geburtsDatum = roheZahl.substring(0,2) + "." + roheZahl.substring(2,4) + ".";
+                } else {
+                    geburtsDatum = zahlen.join(".");
+                }
+            }
+
             if (text.includes("verdeckt") || text.includes("verdeckten") || text.includes("verdeckte") || text.includes("verdeckter")) {
                 try {
-                    let worte = text.split(" ");
-                    
-                    let datumIndex = worte.indexOf("datum");
-                    let deinIndex = worte.indexOf("dein");
-                    let targetIndex = datumIndex > 0 ? datumIndex : deinIndex;
-                    
-                    if (targetIndex > 0) {
-                        zuschauerName = worte[targetIndex - 1];
-                    } else {
-                        zuschauerName = "Daniel"; 
-                    }
-                    
-                    zuschauerName = zuschauerName.replace(/(.+)\1+/g, "$1");
-                    zuschauerName = zuschauerName.charAt(0).toUpperCase() + zuschauerName.slice(1);
-
-                    let zahlenGefunden = text.match(/\d+/g);
-                    if (zahlenGefunden && zahlenGefunden.length >= 1) {
-                        let kombinierteZahlen = zahlenGefunden.join(""); 
-                        if (kombinierteZahlen.length >= 4) {
-                            geburtsDatum = kombinierteZahlen.substring(0,2) + "." + kombinierteZahlen.substring(2,4) + ".";
-                        } else {
-                            geburtsDatum = zahlenGefunden.join(".");
-                        }
-                    } else {
-                        geburtsDatum = "20.06.";
-                    }
+                    if (geburtsDatum === "") geburtsDatum = "20.06."; 
 
                     const heute = new Date();
                     const tagHeute = heute.getDate();
@@ -177,7 +170,7 @@
                                            "<p style='font-size: 16px;'><b>Erkannter Name:</b> " + zuschauerName + "</p>" +
                                            "<p style='font-size: 16px;'><b>Erkanntes Datum:</b> " + geburtsDatum + "</p>" +
                                            "<p style='font-size: 16px;'><b>Geburtstag heute:</b> " + istGeburtstag + "</p>" +
-                                           "<hr><small>Vollständiger Textverlauf: " + text + "</small>";
+                                           "<hr><small>Letzter Textbaustein: " + text + "</small>";
                     
                 } catch(e) {
                     logToConsole("Fehler beim Filtern: " + e.message);
