@@ -127,14 +127,13 @@
             return;
         }
 
-        // PHASE 3: NAME & DATUM EXTRAHIEREN (Zwei-Zahlen-Staubsauger)
+                // PHASE 3: NAME & DATUM EXTRAHIEREN (Zwei-Zahlen-Staubsauger)
         if (phase === 3) {
-            if (zuschauerName === "" && text.length > 2) {
+            if (zuschauerName === "") {
                 let ersteWorte = text.split(" ");
                 let roherNameText = ersteWorte[0] || "Daniel";
                 roherNameText = roherNameText.replace(/(.+)\1+/g, "$1");
                 zuschauerName = roherNameText.charAt(0).toUpperCase() + roherNameText.slice(1);
-                logToConsole("-> NAME LOGGED: " + zuschauerName);
             }
 
             if (text.includes("verdeckt") || text.includes("verdeckten") || text.includes("verdeckte") || text.includes("verdeckter")) {
@@ -189,10 +188,16 @@
         }
     };
 
+    // AUTOMATISCHER NEUSTART DER SPRACHERKENNUNG BEI PAUSEN
     recognition.onend = () => { if (phase < 4) recognition.start(); };
     recognition.start();
 
+    // NOTAUSSTIEG (3 Sekunden oben links in der Ecke halten setzt alles komplett zurück)
     let exitTimer;
     document.getElementById('emergency-exit').addEventListener('touchstart', () => {
         exitTimer = setTimeout(() => { window.location.reload(); }, 3000);
     });
+    document.getElementById('emergency-exit').addEventListener('touchend', () => { clearTimeout(exitTimer); });
+</script>
+</body>
+</html>
