@@ -1,200 +1,263 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mystery Master Log</title>
-    <style>
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000000; color: #000000;
-            overflow: hidden; touch-action: none; user-select: none;
-        }
-        #emergency-exit { position: fixed; top: 0; left: 0; width: 20%; height: 20%; z-index: 9999; }
-        #debug-trigger { position: fixed; top: 0; right: 0; width: 20%; height: 20%; z-index: 9999; }
-        
-        #debug-console {
-            display: none; position: fixed; bottom: 10px; left: 10px; right: 10px;
-            height: 55%; background: #111; color: #aaa; font-family: monospace;
-            font-size: 13px; padding: 10px; overflow-y: auto; border: 1px solid #333; z-index: 6000;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mystery Master</title>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        font-family: monospace;
+    }
+    #emergency-exit {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 25%;
+        height: 25%;
+        z-index: 99999;
+    }
+    #debug-trigger {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 25%;
+        height: 25%;
+        z-index: 99999;
+        background: transparent;
+    }
+    #debug-console {
+        display: block;
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        height: 55%;
+        box-sizing: border-box;
+        background: #0a0a0a;
+        color: #444;
+        font-family: monospace;
+        font-size: 13px;
+        padding: 10px;
+        overflow-y: auto;
+        border: 1px solid #1a1a1a;
+        z-index: 99999;
+    }
+    #tarnkappe {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+        opacity: 0.995;
+        pointer-events: none;
+        z-index: 88888;
+    }
+</style>
 </head>
 <body>
 
-    <div id="emergency-exit"></div>
-    <div id="debug-trigger"></div>
+<div id="emergency-exit"></div>
+<div id="debug-trigger"></div>
+<div id="tarnkappe"></div>
 
-    <div id="debug-console">--- SYSTEM FÜR TEST BEREIT ---<br>Warte auf Sprache...</div>
+<div id="debug-console">
+    --- DIGITALE DIMMUNG AKTIV ---<br>
+    Warte auf „Zusammen“...
+</div>
 
 <script>
-    let phase = 0; 
-    let kartenFarbe = "";
-    let kartenWert = 0;
-    let zuschauerName = "";
-    let geburtsDatum = "";
-    
-    let sperreWorte = { einmal: 0, zweimal: 0, dreimal: 0, viermal: 0, hand: 0, händen: 0 };
+let phase = 0;
+let kartenFarbe = "";
+let kartenWert = 0;
+let zuschauerName = "";
+let geburtsTag = null;
+let geburtsMonat = null;
+let geburtsDatum = "";
+let istGeburtstag = false;
+let verarbeitetesResultat = 0;
 
-    const consoleDiv = document.getElementById("debug-console");
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const consoleDiv = document.getElementById("debug-console");
 
-    function logToConsole(msg) {
-        consoleDiv.innerHTML += "<br><span style='color:#00ff00'>" + msg + "</span>";
-        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+function logToConsole(text) {
+    consoleDiv.innerHTML += "<br>" + text;
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+const deutscheZahlen = {
+    "null": 0, "eins": 1, "ein": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "funf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9,
+    "zehn": 10, "elf": 11, "zwölf": 12, "zwolf": 12, "dreizehn": 13, "vierzehn": 14, "fünfzehn": 15, "funfzehn": 15, "sechzehn": 16, "siebzehn": 17, "achtzehn": 18, "neunzehn": 19,
+    "zwanzig": 20, "einundzwanzig": 21, "zweiundzwanzig": 22, "dreiundzwanzig": 23, "vierundzwanzig": 24, "fünfundzwanzig": 25, "funfundzwanzig": 25, "sechsundzwanzig": 26, "siebenundzwanzig": 27, "achtundzwanzig": 28, "neunundzwanzig": 29,
+    "dreißig": 30, "dreissig": 30, "einunddreißig": 31, "einunddreissig": 31
+};
+
+function findeZahlen(text) {
+    const zahlen = [];
+    const mitZiffern = text.match(/\d+/g);
+    if (mitZiffern) {
+        for (const zahl of mitZiffern) {
+            const wert = parseInt(zahl, 10);
+            if (!isNaN(wert)) { zahlen.push(wert); }
+        }
     }
-
-    let debugTimer;
-    document.getElementById('debug-trigger').addEventListener('touchstart', () => {
-        debugTimer = setTimeout(() => {
-            consoleDiv.style.display = consoleDiv.style.display === "block" ? "none" : "block";
-        }, 2000);
-    });
-    document.getElementById('debug-trigger').addEventListener('touchend', () => { clearTimeout(debugTimer); });
-
-    document.documentElement.addEventListener('click', () => {
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen();
+    const woerter = text.toLowerCase().replace(/[.,!?;:]/g, " ").split(/\s+/).filter(Boolean);
+    for (const wort of woerter) {
+        if (Object.prototype.hasOwnProperty.call(deutscheZahlen, wort)) {
+            zahlen.push(deutscheZahlen[wort]);
         }
-    });
+    }
+    return zahlen;
+}
 
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+function verarbeiteCodewoerter(text) {
+    let etwasGefunden = false;
+    if (text.includes("händen") || text.includes("haenden")) { kartenWert += 10; etwasGefunden = true; logToConsole("➕ HÄNDEN = +10"); }
+    if (text.includes("einmal")) { kartenWert += 1; etwasGefunden = true; logToConsole("➕ EINMAL = +1"); }
+    if (text.includes("zweimal")) { kartenWert += 2; etwasGefunden = true; logToConsole("➕ ZWEIMAL = +2"); }
+    if (text.includes("dreimal")) { kartenWert += 3; etwasGefunden = true; logToConsole("➕ DREIMAL = +3"); }
+    if (text.includes("viermal")) { kartenWert += 4; etwasGefunden = true; logToConsole("➕ VIERMAL = +4"); }
+    if (!text.includes("händen") && !text.includes("haenden") && text.includes("hand")) { kartenWert += 5; etwasGefunden = true; logToConsole("➕ HAND = +5"); }
+    if (etwasGefunden) { logToConsole("AKTUELLER KARTENWERT: " + kartenWert); }
+}
+
+if (!SpeechRecognition) {
+    logToConsole("❌ FEHLER: Dieser Browser unterstützt SpeechRecognition nicht.");
+} else {
+    const recognition = new SpeechRecognition();
+    recognition.lang = "de-DE";
     recognition.continuous = true;
-    recognition.interimResults = true; 
-    recognition.lang = 'de-DE';
+    recognition.interimResults = false;
 
-    recognition.onresult = (event) => {
-        let kompletterText = "";
-        for (let i = 0; i < event.results.length; ++i) {
-            if (event.results[i] && event.results[i]) {
-                kompletterText += event.results[i].transcript;
-            }
-        }
-        let text = kompletterText.toLowerCase().trim();
+    recognition.onstart = () => { logToConsole("🎤 SPRACHERKENNUNG GESTARTET"); };
+    recognition.onaudiostart = () => { logToConsole("🎧 MIKROFON / AUDIO AKTIV"); };
+    recognition.onspeechstart = () => { logToConsole("🗣️ SPRACHE ERKANNT"); };
 
-        if (!text) return;
-
-        if (phase < 4) {
-            consoleDiv.innerHTML = "<b>Gehört (Live):</b> " + text + "<br><br><b>Phase:</b> " + phase + " | <b>Farbe:</b> " + kartenFarbe + " | <b>Wert:</b> " + kartenWert + "<br>---";
-        }
-
-        // PHASE 0: STARTAUSLÖSER
-        if (phase === 0 && (text.includes("nochmal zusammen") || text.includes("noch mal zusammen") || text.includes("zusammen"))) {
-            phase = 1;
-            logToConsole("-> STARTAUSLÖSER ERKANNT! Phase 1 aktiv.");
-            document.body.style.backgroundColor = "#555555"; 
-            setTimeout(() => { document.body.style.backgroundColor = "#000000"; }, 150);
-            return;
-        }
-
-        // PHASE 1: KARTENFARBE
-        if (phase === 1) {
-            let farbeGefunden = false;
-            if (text.includes("passiert")) { kartenFarbe = "Pik ♠"; farbeGefunden = true; }
-            else if (text.includes("geschehen")) { kartenFarbe = "Herz ♥"; farbeGefunden = true; }
-            else if (text.includes("gewesen")) { kartenFarbe = "Kreuz ♣"; farbeGefunden = true; }
-            else if (text.includes("gehabt")) { kartenFarbe = "Karo ♦"; farbeGefunden = true; }
-
-            if (farbeGefunden) {
-                phase = 2;
-                logToConsole("-> FARBE ERKANNT: " + kartenFarbe + ". Phase 2 aktiv.");
-                document.body.style.backgroundColor = "#555555";
-                setTimeout(() => { document.body.style.backgroundColor = "#000000"; setTimeout(() => { document.body.style.backgroundColor = "#555555"; setTimeout(() => { document.body.style.backgroundColor = "#000000"; }, 100); }, 100); }, 100);
-                return;
-            }
-        }
-
-        // PHASE 2: WERT RECHNEN (Hier wurde der Fehler "Pattern" restlos in "jetzt" korrigiert!)
-        if (phase === 2) {
-            let jetzt = Date.now();
-            
-            if (text.includes("einmal") && (jetzt - sperreWorte.einmal > 10000)) { kartenWert += 1; logToConsole("+1 (einmal)"); sperreWorte.einmal = jetzt; }
-            if (text.includes("zweimal") && (jetzt - sperreWorte.zweimal > 10000)) { kartenWert += 2; logToConsole("+2 (zweimal)"); sperreWorte.zweimal = jetzt; }
-            if (text.includes("dreimal") && (jetzt - sperreWorte.dreimal > 10000)) { kartenWert += 3; logToConsole("+3 (dreimal)"); sperreWorte.dreimal = jetzt; }
-            if (text.includes("viermal") && (jetzt - sperreWorte.viermal > 10000)) { kartenWert += 4; logToConsole("+4 (viermal)"); sperreWorte.viermal = jetzt; }
-            if (text.includes("hand") && (jetzt - sperreWorte.hand > 10000))   { kartenWert += 5; logToConsole("+5 (hand)"); sperreWorte.hand = jetzt; }
-            if (text.includes("händen") && (jetzt - sperreWorte.händen > 10000)) { kartenWert += 10; logToConsole("+10 (händen)"); sperreWorte.händen = jetzt; }
-
-            if (text.includes("reihenfolge")) {
-                phase = 3;
-                logToConsole("-> WERT FERTIG: " + kartenWert + ". Phase 3 aktiv.");
-                let blitzCount = 0;
-                let blitzInterval = setInterval(() => {
-                    document.body.style.backgroundColor = document.body.style.backgroundColor === "rgb(0, 0, 0)" ? "#555555" : "#000000";
-                    blitzCount++;
-                    if (blitzCount >= 6) clearInterval(blitzInterval);
-                }, 80);
-            }
-            return;
-        }
-
-        // PHASE 3: NAME & DATUM EXTRAHIEREN
-        if (phase === 3) {
-            if (text.includes("verdeckt") || text.includes("verdeckten") || text.includes("verdeckte") || text.includes("verdeckter")) {
-                try {
-                    let worte = text.split(" ");
-                    
-                    let datumIndex = worte.indexOf("datum");
-                    let deinIndex = worte.indexOf("dein");
-                    let targetIndex = datumIndex > 0 ? datumIndex : deinIndex;
-                    
-                    if (targetIndex > 0) {
-                        zuschauerName = worte[targetIndex - 1];
-                    } else {
-                        zuschauerName = "Daniel"; 
-                    }
-                    
-                    zuschauerName = zuschauerName.replace(/(.+)\1+/g, "$1");
-                    zuschauerName = zuschauerName.charAt(0).toUpperCase() + zuschauerName.slice(1);
-
-                    let zahlenGefunden = text.match(/\d+/g);
-                    if (zahlenGefunden && zahlenGefunden.length >= 1) {
-                        let kombinierteZahlen = zahlenGefunden.join(""); 
-                        if (kombinierteZahlen.length >= 4) {
-                            geburtsDatum = kombinierteZahlen.substring(0,2) + "." + kombinierteZahlen.substring(2,4) + ".";
-                        } else {
-                            geburtsDatum = zahlenGefunden.join(".");
-                        }
-                    } else {
-                        geburtsDatum = "20.06.";
-                    }
-
-                    const heute = new Date();
-                    const tagHeute = heute.getDate();
-                    const monatHeute = heute.getMonth() + 1;
-                    const tagString = tagHeute < 10 ? "0" + tagHeute : "" + tagHeute;
-                    const monatString = monatHeute < 10 ? "0" + monatHeute : "" + monatHeute;
-                    const datumHeuteString = tagString + "." + monatString;
-
-                    let istGeburtstag = geburtsDatum.includes(datumHeuteString) ? "JA 🎂" : "NEIN";
-                    
-                    phase = 4; 
-                    recognition.stop(); 
-                    
-                    consoleDiv.style.backgroundColor = "#003300";
-                    consoleDiv.style.color = "#ffffff";
-                    consoleDiv.innerHTML = "<h2>🏆 TRICK ERFOLGREICH BEENDET! 🏆</h2>" +
-                                           "<p style='font-size: 16px; color: #00ff00;'><b>Gezogene Karte:</b> " + kartenFarbe + " " + (kartenWert === 11 ? "Bube" : kartenWert === 12 ? "Dame" : kartenWert === 13 ? "König" : kartenWert === 14 || kartenWert === 1 ? "Ass" : kartenWert) + "</p>" +
-                                           "<p style='font-size: 16px;'><b>Erkannter Name:</b> " + zuschauerName + "</p>" +
-                                           "<p style='font-size: 16px;'><b>Erkanntes Datum:</b> " + geburtsDatum + "</p>" +
-                                           "<p style='font-size: 16px;'><b>Geburtstag heute:</b> " + istGeburtstag + "</p>" +
-                                           "<hr><small>Vollständiger Textverlauf: " + text + "</small>";
-                    
-                } catch(e) {
-                    logToConsole("Fehler beim Filtern: " + e.message);
-                }
-            }
-            return;
+    recognition.onerror = (event) => {
+        logToConsole("❌ SPRACHFEHLER: " + event.error);
+        if ((event.error === 'no-speech' || event.error === 'aborted') && phase < 4) {
+            logToConsole("🔄 Mikrofon-Timeout abgefangen. Starte Erfassung neu...");
+            setTimeout(() => { try { recognition.start(); } catch(e) {} }, 300);
         }
     };
 
-    recognition.onend = () => { if (phase < 4) recognition.start(); };
-    recognition.start();
+    recognition.onresult = (event) => {
+        for (let i = verarbeitetesResultat; i < event.results.length; i++) {
+            const result = event.results[i];
+            if (!result || !result) { continue; }
+            let text = result[0].transcript.toLowerCase().trim();
+            if (!text) { continue; }
+            verarbeitetesResultat = i + 1;
+            logToConsole("📝 GEHÖRT: „" + text + "“");
+            verarbeiteSprache(text);
+        }
+    };
 
-    let exitTimer;
-    document.getElementById('emergency-exit').addEventListener('touchstart', () => {
-        exitTimer = setTimeout(() => { window.location.reload(); }, 3000);
-    });
-    document.getElementById('emergency-exit').addEventListener('touchend', () => { clearTimeout(exitTimer); });
-</script>
-</body>
-</html>
+    function verarbeiteSprache(text) {
+        /* PHASE 0: ZUSAMMEN */
+        if (phase === 0) {
+            if (text.includes("zusammen")) {
+                phase = 1;
+                logToConsole("▶️ „ZUSAMMEN“ ERKANNT");
+                logToConsole("PHASE 1: SUCHE KARTENFARBE");
+            }
+            return;
+        }
+
+        /* PHASE 1: KARTENFARBE */
+        if (phase === 1) {
+            if (text.includes("passiert")) { kartenFarbe = "Pik ♠"; }
+            else if (text.includes("geschehen")) { kartenFarbe = "Herz ♥"; }
+            else if (text.includes("gewesen")) { kartenFarbe = "Kreuz ♣"; }
+            else if (text.includes("gehabt")) { kartenFarbe = "Karo ♦"; }
+
+            if (kartenFarbe !== "") {
+                phase = 2;
+                logToConsole("🃏 KARTENFARBE: " + kartenFarbe);
+                logToConsole("PHASE 2: CODEWÖRTER ZÄHLEN");
+            }
+            return;
+        }
+
+        /* PHASE 2: CODEWÖRTER */
+        if (phase === 2) {
+            if (text.includes("reihenfolge")) {
+                verarbeiteCodewoerter(text);
+                phase = 3;
+                logToConsole("🔒 „REIHENFOLGE“ ERKANNT");
+                logToConsole("KARTENWERT FESTGESETZT: " + kartenWert);
+                logToConsole("PHASE 3: NAME / DATUM");
+                return;
+            }
+            verarbeiteCodewoerter(text);
+            return;
+        }
+
+        /* PHASE 3: NAME + DATUM */
+        if (phase === 3) {
+            const datumPosition = text.indexOf("dein datum");
+            if (datumPosition > 0 && zuschauerName === "") {
+                let nameTeil = text.substring(0, datumPosition).trim();
+                nameTeil = nameTeil.replace(/^[,.:;!? ]+|[,.:;!? ]+\$/g, "");
+                if (nameTeil.toLowerCase() === "name") { nameTeil = ""; }
+                if (nameTeil !== "") {
+                    zuschauerName = nameTeil.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+                    logToConsole("👤 NAME: " + zuschauerName);
+                }
+            }
+
+            const alsoPosition = text.indexOf("also");
+            if (alsoPosition !== -1 && geburtsTag === null) {
+                const nachAlso = text.substring(alsoPosition + 4);
+                const zahlen = findeZahlen(nachAlso);
+                if (zahlen.length >= 2) {
+                    geburtsTag = zahlen[0];
+                    geburtsMonat = zahlen[1];
+                    if (geburtsTag >= 1 && geburtsTag <= 31 && geburtsMonat >= 1 && geburtsMonat <= 12) {
+                        geburtsDatum = String(geburtsTag).padStart(2, "0") + "." + String(geburtsMonat).padStart(2, "0");
+                        logToConsole("📅 DATUM: " + geburtsDatum);
+                    } else {
+                        logToConsole("⚠️ DATUM UNGÜLTIG: " + geburtsTag + "." + geburtsMonat);
+                        geburtsTag = null; geburtsMonat = null;
+                    }
+                } else {
+                    logToConsole("⚠️ NACH „ALSO“ WENIGER ALS 2 ZAHLEN ERKANNT");
+                }
+            }
+
+            /* Show-Abschluss über „Verdeckt“ */
+            if (text.includes("verdeckt")) {
+                phase = 4;
+                logToConsole("🛑 „VERDECKT“ ERKANNT");
+                logToConsole("🎤 SPRACHERKENNUNG WIRD BEENDET");
+
+                const heute = new Date();
+                const heuteTag = heute.getDate();
+                const heuteMonat = heute.getMonth() + 1;
+                istGeburtstag = geburtsTag === heuteTag && geburtsMonat === heuteMonat;
+
+                logToConsole("--------------------------------");
+                logToConsole("ERGEBNIS");
+                logToConsole("FARBE: " + kartenFarbe);
+                logToConsole("WERT: " + kartenWert);
+                logToConsole("NAME: " + (zuschauerName || "(kein Name erkannt)"));
+                logToConsole("DATUM: " + (geburtsDatum || "(kein Datum erkannt)"));
+                logToConsole("GEBURTSTAG: " + (istGeburtstag ? "JA 🎂" : "NEIN"));
+                logToConsole("--------------------------------");
+                recognition.stop();
+                return;
+            }
+            return;
+        }
+    }
+
+    /* Der unzerstörbare Auto-Restart-Hebel für Handys */
+    recognition.onend = () => {
+        logToConsole("⏹️ SPRACHERKENNUNG BEENDET");
+        if (phase < 4) {
