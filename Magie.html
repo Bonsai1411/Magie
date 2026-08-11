@@ -257,7 +257,36 @@ if (!SpeechRecognition) {
         }
     }
 
-    /* Der unzerstörbare Auto-Restart-Hebel für Handys */
+      /* Der unzerstörbare Auto-Restart-Hebel für Handys */
     recognition.onend = () => {
         logToConsole("⏹️ SPRACHERKENNUNG BEENDET");
         if (phase < 4) {
+            setTimeout(() => { 
+                try { 
+                    recognition.start(); 
+                } catch (e) { 
+                    logToConsole("❌ NEUSTARTFEHLER: " + e.message); 
+                } 
+            }, 300);
+        }
+    };
+
+    /* =====================================================
+       BÄM!!! HIER IST DER ABSOLUTE ZÜNDSCHLÜSSEL!
+       ===================================================== */
+    try {
+        recognition.start();
+    } catch(e) {
+        logToConsole("⚠️ Erster Start fehlgeschlagen: " + e.message);
+    }
+}
+
+/* NOT-AUS (3 Sek oben links gedrückt halten) */
+let exitTimer = null;
+document.getElementById("emergency-exit").addEventListener("touchstart", () => {
+    exitTimer = setTimeout(() => { location.reload(); }, 3000);
+});
+document.getElementById("emergency-exit").addEventListener("touchend", () => { clearTimeout(exitTimer); });
+</script>
+</body>
+</html>
