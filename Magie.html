@@ -257,29 +257,40 @@ if (!SpeechRecognition) {
         }
     }
 
-      /* Der unzerstörbare, mobile Puffer-Restart-Hebel für Handys */
+     /* Der unzerstörbare Mobil-Reset-Restart-Hebel für Handys */
     let neustartTimer = null;
 
     recognition.onend = () => {
         logToConsole("⏹️ SPRACHERKENNUNG BEENDET");
         
-        // Falls noch ein alter Neustart-Befehl in der Warteschleife hängt, löschen wir ihn
         if (neustartTimer) { clearTimeout(neustartTimer); }
 
-        // Wenn das Handy das Mikrofon schließt (wegen Stille oder Ergebnis-Verarbeitung),
-        // geben wir dem Android-System 700ms Zeit zum Atmen, bevor wir es wieder aufreißen!
         if (phase < 4) {
-            logToConsole("⏳ MOBILER PUFFER-RESTART: Android-System atmet durch...");
+            logToConsole("⏳ MOBILER RESET-RESTART: Zwinge RAM zum Freigeben...");
+            
             neustartTimer = setTimeout(() => { 
                 try { 
-                    recognition.start(); 
-                    logToConsole("⚡ MIKROFON ERFOLGREICH REANIMIERT!");
+                    // Der absolute Geniestreich: Wir brechen alle hängengebliebenen 
+                    // Geister-Sitzungen im Handy-Browser radikal ab!
+                    recognition.abort(); 
+                    
+                    // Kleine Atempause nach dem Abbruch, dann der saubere Neustart
+                    setTimeout(() => {
+                        try {
+                            recognition.start(); 
+                            logToConsole("⚡ MIKROFON BLITZSAUBER REANIMIERT!");
+                        } catch(e2) {
+                            // Falls es schon läuft, fangen wir den Fehler geräuschlos ab
+                        }
+                    }, 100);
+
                 } catch (e) { 
                     logToConsole("❌ NEUSTARTFEHLER: " + e.message); 
                 } 
-            }, 700); // Der goldene 700ms-Puffer für Samsung S26
+            }, 600); // Perfekt austarierter 600ms-Timer für das Samsung S26
         }
     };
+
 
 
     /* =====================================================
