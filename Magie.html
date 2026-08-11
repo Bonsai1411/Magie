@@ -132,7 +132,7 @@ if (!SpeechRecognition) {
 } else {
     const recognition = new SpeechRecognition();
     recognition.lang = "de-DE";
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
 
     recognition.onstart = () => { logToConsole("🎤 SPRACHERKENNUNG GESTARTET"); };
@@ -257,40 +257,27 @@ if (!SpeechRecognition) {
         }
     }
 
-     /* Der unzerstörbare Mobil-Reset-Restart-Hebel für Handys */
-    let neustartTimer = null;
-
+      /* Der unzerstörbare Mobil-Wechselstrom-Hebel für Smartphones */
     recognition.onend = () => {
         logToConsole("⏹️ SPRACHERKENNUNG BEENDET");
-        
-        if (neustartTimer) { clearTimeout(neustartTimer); }
 
+        // Wenn der Trick nicht in Phase 4 angekommen ist, starten wir das Ohr 
+        // nach exakt 250 Millisekunden komplett blitzsauber als frische Sitzung neu!
         if (phase < 4) {
-            logToConsole("⏳ MOBILER RESET-RESTART: Zwinge RAM zum Freigeben...");
-            
-            neustartTimer = setTimeout(() => { 
-                try { 
-                    // Der absolute Geniestreich: Wir brechen alle hängengebliebenen 
-                    // Geister-Sitzungen im Handy-Browser radikal ab!
-                    recognition.abort(); 
+            logToConsole("⚡ MOBIL-WECHSELSTROM: Starte frische Sitzung...");
+            setTimeout(() => {
+                try {
+                    // Wir setzen den verarbeiteten Resultat-Zähler für die neue Sitzung zurück auf Null
+                    verarbeitetesResultat = 0; 
                     
-                    // Kleine Atempause nach dem Abbruch, dann der saubere Neustart
-                    setTimeout(() => {
-                        try {
-                            recognition.start(); 
-                            logToConsole("⚡ MIKROFON BLITZSAUBER REANIMIERT!");
-                        } catch(e2) {
-                            // Falls es schon läuft, fangen wir den Fehler geräuschlos ab
-                        }
-                    }, 100);
-
-                } catch (e) { 
-                    logToConsole("❌ NEUSTARTFEHLER: " + e.message); 
-                } 
-            }, 600); // Perfekt austarierter 600ms-Timer für das Samsung S26
+                    recognition.start();
+                    logToConsole("🎤 STUMMES OHR WIEDER AUF EMPFANG!");
+                } catch (e) {
+                    // Falls es schon im RAM funkt, fangen wir den Fehler geräuschlos ab
+                }
+            }, 250); // Die perfekte, unmerkliche Viertelsekunde Atempause für Android
         }
     };
-
 
 
     /* =====================================================
