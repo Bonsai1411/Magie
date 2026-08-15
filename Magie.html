@@ -633,8 +633,7 @@ function verarbeiteSprache(text) {
         return;
     }
 }
-
-   /* GESTERNS REINER, UNZAPPLIGER WECHSELSTROM-RESTART */
+/* GESTERNS REINER, UNZAPPLIGER WECHSELSTROM-RESTART */
 
 let neustartTimer = null;
 let antiLoopSperre = false;
@@ -676,7 +675,7 @@ recognition.onend = () => {
 try {
     recognition.start();
 } catch(e) {}
-
+}
 
 /* NOT-AUS (3 Sek oben links gedrückt halten zum Neuladen) */
 let exitTimer = null;
