@@ -62,6 +62,11 @@ let geburtsTag = null;
 let geburtsMonat = null;
 let geburtsDatum = "";
 let istGeburtstag = false;
+// =========================================================
+// SPRACHPUFFER FÜR NAME / DATUM
+// =========================================================
+
+let phase3Text = "";    
 let verarbeitetesResultat = 0;
 let benutzerScrollt = false;
 
@@ -178,100 +183,261 @@ if (!SpeechRecognition) {
         logToConsole("🔍 [ANALYSE] Prüfe Phase " + phase + "...");
 
         /* PRIORITY 1: DER ABSOLUTE BÜHNEN-NOT-AUSSTIEG GANZ OBEN */
-        if (phase === 3) {
-            if (text.includes("verdeckt") || text.includes("verdeck") || text.includes("fertig") || text.includes("ende") || text.includes("schluss")) {
-                phase = 4;
-                logToConsole("🎯 [TRIGGER] ABSCHLUSS-SIGNAL ERKANNT -> TRICK BEENDET");
+      /* =================================================
+   PHASE 3
+   NAME + DATUM
+   ================================================= */
 
-                const heute = new Date();
-                istGeburtstag = geburtsTag === heute.getDate() && geburtsMonat === (heute.getMonth() + 1);
+if (phase === 3) {
 
-                logToConsole("<br>================================================");
-                logToConsole("🏆 FINAL-REPORT DER MENTALMAGIE-LOGIK");
-                logToConsole("================================================");
-                logToConsole("🃏 KARTENFARBE: " + (kartenFarbe || "❌ (FEHLT!)"));
-                logToConsole("🔢 KARTENWERT: " + kartenWert);
-                logToConsole("👤 NAME: " + (zuschauerName || "❌ (KEIN NAME GEFUNDEN)"));
-                logToConsole("📅 DATUM: " + (geburtsDatum || "❌ (KEIN DATUM GEFUNDEN)"));
-                logToConsole("🎂 GEBURTSTAG HEUTE: " + (istGeburtstag ? "JA! 🎂🎈" : "NEIN"));
-                logToConsole("================================================");
-                recognition.stop();
-                return;
+    // Alle Sprachfragmente aus Phase 3 sammeln.
+    phase3Text += " " + text;
+
+    /*
+    =============================================
+    NAME
+    =============================================
+    */
+
+    const datumPosition =
+        phase3Text.indexOf("dein datum");
+
+    if (
+        datumPosition > 0 &&
+        zuschauerName === ""
+    ) {
+
+        let nameTeil =
+            phase3Text.substring(
+                0,
+                datumPosition
+            ).trim();
+
+        /*
+        Nur den Teil direkt vor „dein datum“
+        verwenden.
+        */
+
+        const woerter =
+            nameTeil.split(/\s+/);
+
+        if (woerter.length > 0) {
+
+            nameTeil =
+                woerter[woerter.length - 1]
+                    .replace(
+                        /^[,.:;!? ]+|[,.:;!? ]+$/g,
+                        ""
+                    );
+
+            if (
+                nameTeil !== "" &&
+                nameTeil.toLowerCase() !== "name"
+            ) {
+
+                zuschauerName =
+                    nameTeil.charAt(0).toUpperCase() +
+                    nameTeil.slice(1);
+
+                logToConsole(
+                    "👤 NAME: " +
+                    zuschauerName
+                );
             }
-        }
-
-        /* PHASE 0: ZUSAMMEN */
-        if (phase === 0) {
-            if (text.includes("zusammen")) {
-                phase = 1;
-                logToConsole("🔓 [PHASENWECHSEL] Phase 0 -> Springe in PHASE 1");
-            }
-            return;
-        }
-
-        /* PHASE 1: KARTENFARBE (Panzersicher über .includes) */
-        if (phase === 1) {
-            if (text.includes("passiert")) { kartenFarbe = "Pik ♠"; }
-            else if (text.includes("geschehen")) { kartenFarbe = "Herz ♥"; }
-            else if (text.includes("gewesen")) { kartenFarbe = "Kreuz ♣"; }
-            else if (text.includes("gehabt")) { kartenFarbe = "Karo ♦"; }
-
-            if (kartenFarbe !== "") {
-                phase = 2;
-                logToConsole("🔓 [PHASENWECHSEL] Farbe gelockt: " + kartenFarbe + " -> Springe in PHASE 2");
-            }
-            return;
-        }
-
-        /* PHASE 2: CODEWÖRTER */
-        if (phase === 2) {
-            if (text.includes("reihenfolge")) {
-                verarbeiteCodewoerter(text);
-                phase = 3;
-                logToConsole("🔓 [PHASENWECHSEL] „reihenfolge“ verriegelt Wert -> Springe in PHASE 3");
-                return;
-            }
-            verarbeiteCodewoerter(text);
-            return;
-        }
-
-        /* PHASE 3: NAME + DATUM */
-        if (phase === 3) {
-            const datumPosition = text.indexOf("dein datum");
-            if (datumPosition > 0 && zuschauerName === "") {
-                let nameTeil = text.substring(0, datumPosition).trim();
-                nameTeil = nameTeil.replace(/^[,.:;!? ]+|[,.:;!? ]+\$/g, "");
-                if (nameTeil.toLowerCase() !== "name" && nameTeil !== "") {
-                    zuschauerName = nameTeil.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-                    logToConsole("👤 [PRODUKT] Name gesichert: " + zuschauerName);
-                }
-            }
-
-            if (text.includes("heute") || text.includes("ist heute") || text.includes("ist also heute")) {
-                if (geburtsTag === null) {
-                    const echtzeitUhr = new Date();
-                    geburtsTag = echtzeitUhr.getDate();
-                    geburtsMonat = echtzeitUhr.getMonth() + 1;
-                    geburtsDatum = String(geburtsTag).padStart(2, "0") + "." + String(geburtsMonat).padStart(2, "0");
-                    logToConsole("📅 [PRODUKT] Trigger „heute“ erkannt. Kalenderdatum gelockt: " + geburtsDatum);
-                }
-            }
-
-            const alsoPosition = text.indexOf("also");
-            if (alsoPosition !== -1 && geburtsTag === null) {
-                const nachAlso = text.substring(alsoPosition + 4).trim();
-                const zahlen = findeZahlen(nachAlso);
-                if (zahlen.length >= 2) {
-                    // MÄCHTIGER ARRAY-FIX: Wir ziehen die Werte absolut einzeln heraus!
-                    geburtsTag = zahlen[0];
-                    geburtsMonat = zahlen[1];
-                    geburtsDatum = String(geburtsTag).padStart(2, "0") + "." + String(geburtsMonat).padStart(2, "0");
-                    logToConsole("📅 [PRODUKT] Zahlen-Datum gesichert: " + geburtsDatum);
-                }
-            }
-            return;
         }
     }
+
+
+    /*
+    =============================================
+    HEUTE
+    =============================================
+    */
+
+    if (
+        geburtsTag === null &&
+        phase3Text.includes("heute")
+    ) {
+
+        const heute =
+            new Date();
+
+        geburtsTag =
+            heute.getDate();
+
+        geburtsMonat =
+            heute.getMonth() + 1;
+
+        geburtsDatum =
+            String(geburtsTag).padStart(2, "0") +
+            "." +
+            String(geburtsMonat).padStart(2, "0");
+
+        logToConsole(
+            "📅 DATUM: HEUTE → " +
+            geburtsDatum
+        );
+    }
+
+
+    /*
+    =============================================
+    DATUM NACH „ALSO“
+    =============================================
+    */
+
+    if (
+        geburtsTag === null
+    ) {
+
+        const alsoPosition =
+            phase3Text.indexOf("also");
+
+        if (
+            alsoPosition !== -1
+        ) {
+
+            const nachAlso =
+                phase3Text.substring(
+                    alsoPosition + 4
+                );
+
+            const zahlen =
+                findeZahlen(nachAlso);
+
+            if (
+                zahlen.length >= 2
+            ) {
+
+                const tag =
+                    zahlen[0];
+
+                const monat =
+                    zahlen[1];
+
+                if (
+                    tag >= 1 &&
+                    tag <= 31 &&
+                    monat >= 1 &&
+                    monat <= 12
+                ) {
+
+                    geburtsTag = tag;
+                    geburtsMonat = monat;
+
+                    geburtsDatum =
+                        String(tag).padStart(2, "0") +
+                        "." +
+                        String(monat).padStart(2, "0");
+
+                    logToConsole(
+                        "📅 DATUM: " +
+                        geburtsDatum
+                    );
+                }
+            }
+        }
+    }
+
+
+    /*
+    =============================================
+    VERDECKT
+    =============================================
+    */
+
+    if (
+        phase3Text.includes("verdeckt")
+    ) {
+
+        phase = 4;
+
+        logToConsole(
+            "🛑 „VERDECKT“ ERKANNT"
+        );
+
+        logToConsole(
+            "🎤 SPRACHERKENNUNG WIRD BEENDET"
+        );
+
+        /*
+        Geburtstag prüfen.
+        */
+
+        const heute =
+            new Date();
+
+        const heuteTag =
+            heute.getDate();
+
+        const heuteMonat =
+            heute.getMonth() + 1;
+
+        istGeburtstag =
+            geburtsTag === heuteTag &&
+            geburtsMonat === heuteMonat;
+
+
+        /*
+        =========================================
+        ENDRESULTAT
+        =========================================
+        */
+
+        logToConsole(
+            "--------------------------------"
+        );
+
+        logToConsole(
+            "ERGEBNIS"
+        );
+
+        logToConsole(
+            "FARBE: " +
+            kartenFarbe
+        );
+
+        logToConsole(
+            "WERT: " +
+            kartenWert
+        );
+
+        logToConsole(
+            "NAME: " +
+            (
+                zuschauerName ||
+                "(kein Name erkannt)"
+            )
+        );
+
+        logToConsole(
+            "DATUM: " +
+            (
+                geburtsDatum ||
+                "(kein Datum erkannt)"
+            )
+        );
+
+        logToConsole(
+            "GEBURTSTAG: " +
+            (
+                istGeburtstag
+                    ? "JA 🎂"
+                    : "NEIN"
+            )
+        );
+
+        logToConsole(
+            "--------------------------------"
+        );
+
+        recognition.stop();
+
+        return;
+    }
+
+    return;
+}
 
     /* GESTERNS REINER, UNZAPPLIGER WECHSELSTROM-RESTART */
     let neustartTimer = null;
