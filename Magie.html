@@ -1076,39 +1076,107 @@ if (!SpeechRecognition) {
             );
 
 
-            /*
-            REIHENFOLGE
-            */
+/*
+REIHENFOLGE / ABSCHLUSS DER KARTENWERT-PHASE
 
-            if (
-                phase2Text.includes(
-                    "reihenfolge"
-                )
-            ) {
+Mehrere sichere Auslöser:
+1. „reihenfolge“
+2. „reihen“ + „folge“
+3. „deck“ + „bestimmt“
+4. „karten“ + „bestimmt“
+
+„deck“ oder „karten“ alleine lösen NICHT aus.
+*/
+
+const reihenfolgeErkannt =
+    phase2Text.includes(
+        "reihenfolge"
+    );
+
+const reihenUndFolgeErkannt =
+    phase2Text.includes(
+        "reihen"
+    ) &&
+    phase2Text.includes(
+        "folge"
+    );
+
+const deckBestimmtErkannt =
+    phase2Text.includes(
+        "deck"
+    ) &&
+    phase2Text.includes(
+        "bestimmt"
+    );
+
+const kartenBestimmtErkannt =
+    phase2Text.includes(
+        "karten"
+    ) &&
+    phase2Text.includes(
+        "bestimmt"
+    );
 
 
-                phase = 3;
+if (
+    reihenfolgeErkannt ||
+    reihenUndFolgeErkannt ||
+    deckBestimmtErkannt ||
+    kartenBestimmtErkannt
+) {
 
 
-                phase3Text =
-                    "";
+    phase = 3;
 
 
-                logToConsole(
-                    "🔒 „REIHENFOLGE“ ERKANNT"
-                );
+    phase3Text =
+        "";
 
 
-                logToConsole(
-                    "KARTENWERT FESTGESETZT: " +
-                    kartenWert
-                );
+    if (
+        reihenfolgeErkannt
+    ) {
+
+        logToConsole(
+            "🔒 „REIHENFOLGE“ ERKANNT"
+        );
+
+    } else if (
+        reihenUndFolgeErkannt
+    ) {
+
+        logToConsole(
+            "🔒 „REIHEN“ + „FOLGE“ ERKANNT"
+        );
+
+    } else if (
+        deckBestimmtErkannt
+    ) {
+
+        logToConsole(
+            "🔒 „DECK“ + „BESTIMMT“ ERKANNT"
+        );
+
+    } else if (
+        kartenBestimmtErkannt
+    ) {
+
+        logToConsole(
+            "🔒 „KARTEN“ + „BESTIMMT“ ERKANNT"
+        );
+    }
 
 
-                logToConsole(
-                    "PHASE 3: NAME / DATUM"
-                );
-            }
+    logToConsole(
+        "KARTENWERT FESTGESETZT: " +
+        kartenWert
+    );
+
+
+    logToConsole(
+        "PHASE 3: NAME / DATUM"
+    );
+}
 
 
             return;
