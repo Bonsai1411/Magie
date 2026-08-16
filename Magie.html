@@ -180,8 +180,465 @@ if (!SpeechRecognition) {
             verarbeiteSprache(text);
         }
     };
-let phase1Text = "";
-let phase2Text = "";
+function verarbeiteSprache(text) {
+
+    logToConsole(
+        "🔍 [ANALYSE] Prüfe Phase " + phase + "..."
+    );
+
+    /* =================================================
+       NORMALISIERUNG
+       ================================================= */
+
+    text = text
+        .toLowerCase()
+        .replace(/reihen\s+folge/g, "reihenfolge")
+        .replace(/vier\s+mal/g, "viermal")
+        .replace(/drei\s+mal/g, "dreimal")
+        .replace(/zwei\s+mal/g, "zweimal")
+        .replace(/ein\s+mal/g, "einmal");
+
+
+    /* =================================================
+       PHASE 0
+       ZUSAMMEN
+       ================================================= */
+
+    if (phase === 0) {
+
+        if (text.includes("zusammen")) {
+
+            phase = 1;
+
+            phase1Text = "";
+
+            logToConsole(
+                "▶️ „ZUSAMMEN“ ERKANNT"
+            );
+
+            logToConsole(
+                "PHASE 1: SUCHE KARTENFARBE"
+            );
+        }
+
+        return;
+    }
+
+
+    /* =================================================
+       PHASE 1
+       KARTENFARBE
+       ================================================= */
+
+    if (phase === 1) {
+
+        phase1Text += " " + text;
+
+        /*
+        Auch „reihen folge“ über zwei
+        Erkennungsblöcke wird dadurch
+        später zusammengeführt.
+        */
+
+        phase1Text =
+            phase1Text.replace(
+                /reihen\s+folge/g,
+                "reihenfolge"
+            );
+
+
+        /*
+        Kartenfarbe suchen
+        */
+
+        if (phase1Text.includes("passiert")) {
+
+            kartenFarbe = "Pik ♠";
+
+        } else if (phase1Text.includes("geschehen")) {
+
+            kartenFarbe = "Herz ♥";
+
+        } else if (phase1Text.includes("gewesen")) {
+
+            kartenFarbe = "Kreuz ♣";
+
+        } else if (phase1Text.includes("gehabt")) {
+
+            kartenFarbe = "Karo ♦";
+        }
+
+
+        if (kartenFarbe !== "") {
+
+            logToConsole(
+                "🃏 KARTENFARBE: " +
+                kartenFarbe
+            );
+
+            /*
+            Neues Phase-2-Fenster.
+            Der bereits gesprochene Text wird
+            mitgenommen, damit z.B.
+
+            „... passiert einmal abgehoben“
+
+            nicht verloren geht.
+            */
+
+            phase2Text = phase1Text;
+
+            phase = 2;
+
+            logToConsole(
+                "PHASE 2: CODEWÖRTER ZÄHLEN"
+            );
+
+
+            /*
+            Bereits vorhandene Codewörter
+            aus diesem Text auswerten.
+            */
+
+            verarbeiteCodewoerter(phase2Text);
+
+
+            /*
+            Falls „Reihenfolge“ bereits im selben
+            Sprachresultat vorhanden war.
+            */
+
+            if (
+                phase2Text.includes("reihenfolge")
+            ) {
+
+                phase = 3;
+
+                phase3Text = "";
+
+                logToConsole(
+                    "🔒 „REIHENFOLGE“ ERKANNT"
+                );
+
+                logToConsole(
+                    "KARTENWERT FESTGESETZT: " +
+                    kartenWert
+                );
+
+                logToConsole(
+                    "PHASE 3: NAME / DATUM"
+                );
+            }
+        }
+
+        return;
+    }
+
+
+    /* =================================================
+       PHASE 2
+       CODEWÖRTER + REIHENFOLGE
+       ================================================= */
+
+    if (phase === 2) {
+
+        phase2Text += " " + text;
+
+        /*
+        Zusammengezogene Schreibweisen
+        */
+
+        phase2Text =
+            phase2Text.replace(
+                /reihen\s+folge/g,
+                "reihenfolge"
+            );
+
+
+        /*
+        Codewörter aus dem gesamten Puffer
+        */
+
+        verarbeiteCodewoerter(text);
+
+
+        /*
+        REIHENFOLGE
+        */
+
+        if (
+            phase2Text.includes("reihenfolge")
+        ) {
+
+            phase = 3;
+
+            phase3Text = "";
+
+            logToConsole(
+                "🔒 „REIHENFOLGE“ ERKANNT"
+            );
+
+            logToConsole(
+                "KARTENWERT FESTGESETZT: " +
+                kartenWert
+            );
+
+            logToConsole(
+                "PHASE 3: NAME / DATUM"
+            );
+        }
+
+        return;
+    }
+
+
+    /* =================================================
+       PHASE 3
+       NAME + DATUM + HEUTE
+       ================================================= */
+
+    if (phase === 3) {
+
+        phase3Text += " " + text;
+
+
+        /*
+        NAME
+        */
+
+        const datumPosition =
+            phase3Text.indexOf("dein datum");
+
+
+        if (
+            datumPosition > 0 &&
+            zuschauerName === ""
+        ) {
+
+            let nameTeil =
+                phase3Text
+                    .substring(
+                        0,
+                        datumPosition
+                    )
+                    .trim();
+
+            const woerter =
+                nameTeil.split(/\s+/);
+
+            if (woerter.length > 0) {
+
+                nameTeil =
+                    woerter[
+                        woerter.length - 1
+                    ]
+                    .replace(
+                        /^[,.:;!? ]+|[,.:;!? ]+$/g,
+                        ""
+                    );
+
+                if (
+                    nameTeil !== "" &&
+                    nameTeil.toLowerCase() !== "name"
+                ) {
+
+                    zuschauerName =
+                        nameTeil.charAt(0).toUpperCase() +
+                        nameTeil.slice(1);
+
+                    logToConsole(
+                        "👤 NAME: " +
+                        zuschauerName
+                    );
+                }
+            }
+        }
+
+
+        /*
+        HEUTE
+        */
+
+        if (
+            geburtsTag === null &&
+            phase3Text.includes("heute")
+        ) {
+
+            const heute =
+                new Date();
+
+            geburtsTag =
+                heute.getDate();
+
+            geburtsMonat =
+                heute.getMonth() + 1;
+
+            geburtsDatum =
+                String(geburtsTag).padStart(2, "0") +
+                "." +
+                String(geburtsMonat).padStart(2, "0");
+
+            logToConsole(
+                "📅 DATUM: HEUTE → " +
+                geburtsDatum
+            );
+        }
+
+
+        /*
+        DATUM NACH „ALSO“
+        */
+
+        if (
+            geburtsTag === null
+        ) {
+
+            const alsoPosition =
+                phase3Text.indexOf("also");
+
+            if (
+                alsoPosition !== -1
+            ) {
+
+                const nachAlso =
+                    phase3Text.substring(
+                        alsoPosition + 4
+                    );
+
+                const zahlen =
+                    findeZahlen(nachAlso);
+
+                if (
+                    zahlen.length >= 2
+                ) {
+
+                    const tag =
+                        zahlen[0];
+
+                    const monat =
+                        zahlen[1];
+
+                    if (
+                        tag >= 1 &&
+                        tag <= 31 &&
+                        monat >= 1 &&
+                        monat <= 12
+                    ) {
+
+                        geburtsTag = tag;
+                        geburtsMonat = monat;
+
+                        geburtsDatum =
+                            String(tag).padStart(2, "0") +
+                            "." +
+                            String(monat).padStart(2, "0");
+
+                        logToConsole(
+                            "📅 DATUM: " +
+                            geburtsDatum
+                        );
+                    }
+                }
+            }
+        }
+
+
+        /*
+        VERDECKT
+        */
+
+        if (
+            phase3Text.includes("verdeckt")
+        ) {
+
+            phase = 4;
+
+            logToConsole(
+                "🛑 „VERDECKT“ ERKANNT"
+            );
+
+            logToConsole(
+                "🎤 SPRACHERKENNUNG WIRD BEENDET"
+            );
+
+
+            /*
+            Geburtstag prüfen
+            */
+
+            const heute =
+                new Date();
+
+            const heuteTag =
+                heute.getDate();
+
+            const heuteMonat =
+                heute.getMonth() + 1;
+
+            istGeburtstag =
+                geburtsTag === heuteTag &&
+                geburtsMonat === heuteMonat;
+
+
+            /*
+            ERGEBNIS
+            */
+
+            logToConsole(
+                "--------------------------------"
+            );
+
+            logToConsole(
+                "ERGEBNIS"
+            );
+
+            logToConsole(
+                "FARBE: " +
+                kartenFarbe
+            );
+
+            logToConsole(
+                "WERT: " +
+                kartenWert
+            );
+
+            logToConsole(
+                "NAME: " +
+                (
+                    zuschauerName ||
+                    "(kein Name erkannt)"
+                )
+            );
+
+            logToConsole(
+                "DATUM: " +
+                (
+                    geburtsDatum ||
+                    "(kein Datum erkannt)"
+                )
+            );
+
+            logToConsole(
+                "GEBURTSTAG: " +
+                (
+                    istGeburtstag
+                        ? "JA 🎂"
+                        : "NEIN"
+                )
+            );
+
+            logToConsole(
+                "--------------------------------"
+            );
+
+            recognition.stop();
+
+            return;
+        }
+
+        return;
+    }
+}
 recognition.onend = () => {
     if (phase < 4) {
         if (antiLoopSperre) {
