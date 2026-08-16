@@ -186,18 +186,6 @@ function verarbeiteSprache(text) {
         "🔍 [ANALYSE] Prüfe Phase " + phase + "..."
     );
 
-    /* =================================================
-       NORMALISIERUNG
-       ================================================= */
-
-    text = text
-        .toLowerCase()
-        .replace(/reihen\s+folge/g, "reihenfolge")
-        .replace(/vier\s+mal/g, "viermal")
-        .replace(/drei\s+mal/g, "dreimal")
-        .replace(/zwei\s+mal/g, "zweimal")
-        .replace(/ein\s+mal/g, "einmal");
-
 
     /* =================================================
        PHASE 0
@@ -235,16 +223,12 @@ function verarbeiteSprache(text) {
         phase1Text += " " + text;
 
         /*
-        Auch „reihen folge“ über zwei
-        Erkennungsblöcke wird dadurch
-        später zusammengeführt.
+        Auch über mehrere Sprachergebnisse
+        hinweg zusammenhalten.
         */
 
-        phase1Text =
-            phase1Text.replace(
-                /reihen\s+folge/g,
-                "reihenfolge"
-            );
+        phase1Text = phase1Text
+            .replace(/reihen\s+folge/g, "reihenfolge");
 
 
         /*
@@ -269,6 +253,11 @@ function verarbeiteSprache(text) {
         }
 
 
+        /*
+        Sobald die Farbe gefunden wurde,
+        geht es weiter zu Phase 2.
+        */
+
         if (kartenFarbe !== "") {
 
             logToConsole(
@@ -276,19 +265,14 @@ function verarbeiteSprache(text) {
                 kartenFarbe
             );
 
+            phase = 2;
+
             /*
-            Neues Phase-2-Fenster.
-            Der bereits gesprochene Text wird
-            mitgenommen, damit z.B.
-
-            „... passiert einmal abgehoben“
-
-            nicht verloren geht.
+            Alles, was bereits in Phase 1
+            gesprochen wurde, mitnehmen.
             */
 
             phase2Text = phase1Text;
-
-            phase = 2;
 
             logToConsole(
                 "PHASE 2: CODEWÖRTER ZÄHLEN"
@@ -296,20 +280,24 @@ function verarbeiteSprache(text) {
 
 
             /*
-            Bereits vorhandene Codewörter
-            aus diesem Text auswerten.
+            Codewörter aus dem bereits
+            gehörten Text auswerten.
             */
 
-            verarbeiteCodewoerter(phase2Text);
+            verarbeiteCodewoerter(
+                phase2Text
+            );
 
 
             /*
-            Falls „Reihenfolge“ bereits im selben
-            Sprachresultat vorhanden war.
+            Falls Reihenfolge bereits im
+            gleichen Text vorkam.
             */
 
             if (
-                phase2Text.includes("reihenfolge")
+                phase2Text.includes(
+                    "reihenfolge"
+                )
             ) {
 
                 phase = 3;
@@ -342,21 +330,33 @@ function verarbeiteSprache(text) {
 
     if (phase === 2) {
 
-        phase2Text += " " + text;
-
         /*
-        Zusammengezogene Schreibweisen
+        Alle Ergebnisse sammeln.
+
+        Dadurch kann aus:
+
+        „reihen“
+        „folge der karten“
+
+        wieder:
+
+        „reihenfolge der karten“
+
+        werden.
         */
 
-        phase2Text =
-            phase2Text.replace(
+        phase2Text += " " + text;
+
+        phase2Text = phase2Text
+            .replace(
                 /reihen\s+folge/g,
                 "reihenfolge"
             );
 
 
         /*
-        Codewörter aus dem gesamten Puffer
+        Aktuelles Ergebnis nach Codewörtern
+        durchsuchen.
         */
 
         verarbeiteCodewoerter(text);
@@ -367,7 +367,9 @@ function verarbeiteSprache(text) {
         */
 
         if (
-            phase2Text.includes("reihenfolge")
+            phase2Text.includes(
+                "reihenfolge"
+            )
         ) {
 
             phase = 3;
@@ -394,20 +396,26 @@ function verarbeiteSprache(text) {
 
     /* =================================================
        PHASE 3
-       NAME + DATUM + HEUTE
+       NAME / DATUM / HEUTE / VERDECKT
        ================================================= */
 
     if (phase === 3) {
 
+        /*
+        Jedes Sprachfragment sammeln.
+        */
+
         phase3Text += " " + text;
 
 
-        /*
-        NAME
-        */
+        /* ---------------------------------------------
+           NAME
+           --------------------------------------------- */
 
         const datumPosition =
-            phase3Text.indexOf("dein datum");
+            phase3Text.indexOf(
+                "dein datum"
+            );
 
 
         if (
@@ -423,8 +431,10 @@ function verarbeiteSprache(text) {
                     )
                     .trim();
 
+
             const woerter =
                 nameTeil.split(/\s+/);
+
 
             if (woerter.length > 0) {
 
@@ -437,14 +447,18 @@ function verarbeiteSprache(text) {
                         ""
                     );
 
+
                 if (
                     nameTeil !== "" &&
                     nameTeil.toLowerCase() !== "name"
                 ) {
 
                     zuschauerName =
-                        nameTeil.charAt(0).toUpperCase() +
+                        nameTeil
+                            .charAt(0)
+                            .toUpperCase() +
                         nameTeil.slice(1);
+
 
                     logToConsole(
                         "👤 NAME: " +
@@ -455,9 +469,9 @@ function verarbeiteSprache(text) {
         }
 
 
-        /*
-        HEUTE
-        */
+        /* ---------------------------------------------
+           HEUTE
+           --------------------------------------------- */
 
         if (
             geburtsTag === null &&
@@ -467,16 +481,24 @@ function verarbeiteSprache(text) {
             const heute =
                 new Date();
 
+
             geburtsTag =
                 heute.getDate();
+
 
             geburtsMonat =
                 heute.getMonth() + 1;
 
+
             geburtsDatum =
-                String(geburtsTag).padStart(2, "0") +
+                String(
+                    geburtsTag
+                ).padStart(2, "0") +
                 "." +
-                String(geburtsMonat).padStart(2, "0");
+                String(
+                    geburtsMonat
+                ).padStart(2, "0");
+
 
             logToConsole(
                 "📅 DATUM: HEUTE → " +
@@ -485,16 +507,19 @@ function verarbeiteSprache(text) {
         }
 
 
-        /*
-        DATUM NACH „ALSO“
-        */
+        /* ---------------------------------------------
+           DATUM NACH „ALSO“
+           --------------------------------------------- */
 
         if (
             geburtsTag === null
         ) {
 
             const alsoPosition =
-                phase3Text.indexOf("also");
+                phase3Text.indexOf(
+                    "also"
+                );
+
 
             if (
                 alsoPosition !== -1
@@ -505,8 +530,12 @@ function verarbeiteSprache(text) {
                         alsoPosition + 4
                     );
 
+
                 const zahlen =
-                    findeZahlen(nachAlso);
+                    findeZahlen(
+                        nachAlso
+                    );
+
 
                 if (
                     zahlen.length >= 2
@@ -515,8 +544,10 @@ function verarbeiteSprache(text) {
                     const tag =
                         zahlen[0];
 
+
                     const monat =
                         zahlen[1];
+
 
                     if (
                         tag >= 1 &&
@@ -526,12 +557,20 @@ function verarbeiteSprache(text) {
                     ) {
 
                         geburtsTag = tag;
-                        geburtsMonat = monat;
+
+                        geburtsMonat =
+                            monat;
+
 
                         geburtsDatum =
-                            String(tag).padStart(2, "0") +
+                            String(
+                                tag
+                            ).padStart(2, "0") +
                             "." +
-                            String(monat).padStart(2, "0");
+                            String(
+                                monat
+                            ).padStart(2, "0");
+
 
                         logToConsole(
                             "📅 DATUM: " +
@@ -543,19 +582,23 @@ function verarbeiteSprache(text) {
         }
 
 
-        /*
-        VERDECKT
-        */
+        /* ---------------------------------------------
+           VERDECKT = ENDE
+           --------------------------------------------- */
 
         if (
-            phase3Text.includes("verdeckt")
+            phase3Text.includes(
+                "verdeckt"
+            )
         ) {
 
             phase = 4;
 
+
             logToConsole(
                 "🛑 „VERDECKT“ ERKANNT"
             );
+
 
             logToConsole(
                 "🎤 SPRACHERKENNUNG WIRD BEENDET"
@@ -569,11 +612,14 @@ function verarbeiteSprache(text) {
             const heute =
                 new Date();
 
+
             const heuteTag =
                 heute.getDate();
 
+
             const heuteMonat =
                 heute.getMonth() + 1;
+
 
             istGeburtstag =
                 geburtsTag === heuteTag &&
@@ -581,26 +627,30 @@ function verarbeiteSprache(text) {
 
 
             /*
-            ERGEBNIS
+            Ergebnis
             */
 
             logToConsole(
                 "--------------------------------"
             );
 
+
             logToConsole(
                 "ERGEBNIS"
             );
+
 
             logToConsole(
                 "FARBE: " +
                 kartenFarbe
             );
 
+
             logToConsole(
                 "WERT: " +
                 kartenWert
             );
+
 
             logToConsole(
                 "NAME: " +
@@ -610,6 +660,7 @@ function verarbeiteSprache(text) {
                 )
             );
 
+
             logToConsole(
                 "DATUM: " +
                 (
@@ -617,6 +668,7 @@ function verarbeiteSprache(text) {
                     "(kein Datum erkannt)"
                 )
             );
+
 
             logToConsole(
                 "GEBURTSTAG: " +
@@ -627,55 +679,113 @@ function verarbeiteSprache(text) {
                 )
             );
 
+
             logToConsole(
                 "--------------------------------"
             );
+
 
             recognition.stop();
 
             return;
         }
 
+
         return;
     }
 }
+
+
+/* =====================================================
+   MIKROFON-RESTART
+   DIESER BLOCK MUSS AUSSERHALB
+   von verarbeiteSprache() stehen
+   ===================================================== */
+
+let neustartTimer = null;
+let antiLoopSperre = false;
+
+
 recognition.onend = () => {
-    if (phase < 4) {
-        if (antiLoopSperre) {
-            return;
-        }
 
-        antiLoopSperre = true;
+    /*
+    Nach „Verdeckt“ wird NICHT
+    wieder gestartet.
+    */
 
-        if (neustartTimer) {
-            clearTimeout(neustartTimer);
-        }
+    if (phase >= 4) {
+        return;
+    }
 
-        neustartTimer = setTimeout(() => {
+
+    /*
+    Verhindert mehrere gleichzeitige
+    Neustart-Timer.
+    */
+
+    if (antiLoopSperre) {
+        return;
+    }
+
+
+    antiLoopSperre = true;
+
+
+    if (neustartTimer) {
+        clearTimeout(
+            neustartTimer
+        );
+    }
+
+
+    neustartTimer =
+        setTimeout(() => {
 
             try {
 
+                /*
+                Für einen neuen
+                Erkennungszyklus zurücksetzen.
+                */
+
                 verarbeitetesResultat = 0;
+
 
                 recognition.start();
 
+
                 setTimeout(() => {
+
                     antiLoopSperre = false;
+
                 }, 1000);
+
 
             } catch (e) {
 
                 antiLoopSperre = false;
             }
 
+
         }, 800);
-    }
 };
 
 
+/* =====================================================
+   ERSTER START
+   ===================================================== */
+
 try {
+
     recognition.start();
-} catch(e) {}
+
+} catch (e) {
+}
+    logToConsole(
+        "❌ STARTFEHLER: " +
+        e.message
+    );
+}
 }
 
 /* NOT-AUS (3 Sek oben links gedrückt halten zum Neuladen) */
