@@ -374,13 +374,27 @@ function findeZahlen(text) {
 }
 
 
-/* =====================================================
-   CODEWÖRTER
-   ===================================================== */
+/*
+=====================================================
+CODEWÖRTER ROBUST ERKENNEN
+=====================================================
+*/
 
 function verarbeiteCodewoerter(text) {
 
     let etwasGefunden = false;
+
+    /*
+    Leerzeichen zwischen Zahl und „mal“
+    nochmals normalisieren.
+    */
+
+    text = text
+        .toLowerCase()
+        .replace(/\bein\s+mal\b/g, "einmal")
+        .replace(/\bzwei\s+mal\b/g, "zweimal")
+        .replace(/\bdrei\s+mal\b/g, "dreimal")
+        .replace(/\bvier\s+mal\b/g, "viermal");
 
 
     /*
@@ -388,8 +402,8 @@ function verarbeiteCodewoerter(text) {
     */
 
     if (
-        text.includes("händen") ||
-        text.includes("haenden")
+        /\bhänden\b/.test(text) ||
+        /\bhaenden\b/.test(text)
     ) {
 
         kartenWert += 10;
@@ -407,7 +421,7 @@ function verarbeiteCodewoerter(text) {
     */
 
     if (
-        text.includes("einmal")
+        /\beinmal\b/.test(text)
     ) {
 
         kartenWert += 1;
@@ -425,7 +439,7 @@ function verarbeiteCodewoerter(text) {
     */
 
     if (
-        text.includes("zweimal")
+        /\bzweimal\b/.test(text)
     ) {
 
         kartenWert += 2;
@@ -443,7 +457,7 @@ function verarbeiteCodewoerter(text) {
     */
 
     if (
-        text.includes("dreimal")
+        /\bdreimal\b/.test(text)
     ) {
 
         kartenWert += 3;
@@ -461,7 +475,7 @@ function verarbeiteCodewoerter(text) {
     */
 
     if (
-        text.includes("viermal")
+        /\bviermal\b/.test(text)
     ) {
 
         kartenWert += 4;
@@ -477,16 +491,14 @@ function verarbeiteCodewoerter(text) {
     /*
     HAND = +5
 
-    Wichtig:
-    Wenn „händen“ erkannt wurde,
-    wird nicht zusätzlich „hand“
-    gezählt.
+    HÄNDEN darf nicht zusätzlich als HAND
+    gezählt werden.
     */
 
     if (
-        !text.includes("händen") &&
-        !text.includes("haenden") &&
-        text.includes("hand")
+        !/\bhänden\b/.test(text) &&
+        !/\bhaenden\b/.test(text) &&
+        /\bhand\b/.test(text)
     ) {
 
         kartenWert += 5;
@@ -999,11 +1011,59 @@ if (!SpeechRecognition) {
                 bereits vorhanden ist.
                 */
 
-                if (
-                    phase2Text.includes(
-                        "reihenfolge"
-                    )
-                ) {
+/*
+=====================================================
+PHASE 2 ABSCHLUSS
+=====================================================
+
+REIHENFOLGE ist der Hauptauslöser.
+
+Zusätzliche sichere Varianten:
+- „folge der karten ... bestimmt“
+- „karten im deck ... bestimmt“
+
+„deck“ oder „karten“ alleine reichen NICHT.
+*/
+
+const reihenfolgeErkannt =
+    phase2Text.includes("reihenfolge");
+
+const folgeKartenErkannt =
+    phase2Text.includes("folge") &&
+    phase2Text.includes("karten") &&
+    phase2Text.includes("bestimmt");
+
+const kartenDeckBestimmt =
+    phase2Text.includes("karten") &&
+    phase2Text.includes("deck") &&
+    phase2Text.includes("bestimmt");
+
+
+if (
+    reihenfolgeErkannt ||
+    folgeKartenErkannt ||
+    kartenDeckBestimmt
+) {
+
+    phase = 3;
+
+    phase3Text = "";
+
+    logToConsole(
+        "🔒 KARTENFOLGE / REIHENFOLGE ERKANNT"
+    );
+
+    logToConsole(
+        "KARTENWERT FESTGESETZT: " +
+        kartenWert
+    );
+
+    logToConsole(
+        "PHASE 3: NAME / DATUM"
+    );
+
+    return;
+} {
 
 
                     phase = 3;
