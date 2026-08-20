@@ -374,32 +374,50 @@ function findeZahlen(text) {
 }
 
 
-/*
-=====================================================
-CODEWÖRTER ROBUST ERKENNEN
-=====================================================
-*/
+/* =====================================================
+   CODEWÖRTER ROBUST ERKENNEN
+   ===================================================== */
 
 function verarbeiteCodewoerter(text) {
 
     let etwasGefunden = false;
 
+
     /*
     Leerzeichen zwischen Zahl und „mal“
-    nochmals normalisieren.
+    normalisieren.
+
+    WICHTIG:
+    Nur Kombinationen mit „mal“ werden
+    als Kartenwert-Code erkannt.
+
+    „eins“ / „zwei“ / „drei“ / „vier“
+    allein zählen NICHT.
     */
 
     text = text
         .toLowerCase()
-        .replace(/\bein\s+mal\b/g, "einmal")
-        .replace(/\bzwei\s+mal\b/g, "zweimal")
-        .replace(/\bdrei\s+mal\b/g, "dreimal")
-        .replace(/\bvier\s+mal\b/g, "viermal");
+        .replace(
+            /\bein\s+mal\b/g,
+            "einmal"
+        )
+        .replace(
+            /\bzwei\s+mal\b/g,
+            "zweimal"
+        )
+        .replace(
+            /\bdrei\s+mal\b/g,
+            "dreimal"
+        )
+        .replace(
+            /\bvier\s+mal\b/g,
+            "viermal"
+        );
 
 
-    /*
-    HÄNDE = +10
-    */
+    /* -----------------------------------------
+       HÄNDE = +10
+       ----------------------------------------- */
 
     if (
         /\bhänden\b/.test(text) ||
@@ -416,9 +434,9 @@ function verarbeiteCodewoerter(text) {
     }
 
 
-    /*
-    EINMAL = +1
-    */
+    /* -----------------------------------------
+       EINMAL = +1
+       ----------------------------------------- */
 
     if (
         /\beinmal\b/.test(text)
@@ -434,9 +452,9 @@ function verarbeiteCodewoerter(text) {
     }
 
 
-    /*
-    ZWEIMAL = +2
-    */
+    /* -----------------------------------------
+       ZWEIMAL = +2
+       ----------------------------------------- */
 
     if (
         /\bzweimal\b/.test(text)
@@ -452,9 +470,9 @@ function verarbeiteCodewoerter(text) {
     }
 
 
-    /*
-    DREIMAL = +3
-    */
+    /* -----------------------------------------
+       DREIMAL = +3
+       ----------------------------------------- */
 
     if (
         /\bdreimal\b/.test(text)
@@ -470,9 +488,9 @@ function verarbeiteCodewoerter(text) {
     }
 
 
-    /*
-    VIERMAL = +4
-    */
+    /* -----------------------------------------
+       VIERMAL = +4
+       ----------------------------------------- */
 
     if (
         /\bviermal\b/.test(text)
@@ -488,12 +506,12 @@ function verarbeiteCodewoerter(text) {
     }
 
 
-    /*
-    HAND = +5
+    /* -----------------------------------------
+       HAND = +5
 
-    HÄNDEN darf nicht zusätzlich als HAND
-    gezählt werden.
-    */
+       HÄNDEN darf nicht zusätzlich
+       als HAND gezählt werden.
+       ----------------------------------------- */
 
     if (
         !/\bhänden\b/.test(text) &&
@@ -602,12 +620,6 @@ if (!SpeechRecognition) {
             );
 
 
-            /*
-            Bei diesen beiden Fehlern
-            soll während des Tricks
-            weitergehört werden.
-            */
-
             if (
                 (
                     event.error ===
@@ -633,11 +645,11 @@ if (!SpeechRecognition) {
                             } catch (e) {
 
                                 /*
-                                Absichtlich leer.
                                 onend übernimmt
                                 ebenfalls den
                                 normalen Neustart.
                                 */
+
                             }
 
                         },
@@ -707,45 +719,25 @@ if (!SpeechRecognition) {
                 let text =
                     roherText
 
-                        /*
-                        EIN MAL → EINMAL
-                        */
-
                         .replace(
                             /ein\s+mal/g,
                             "einmal"
                         )
-
-                        /*
-                        ZWEI MAL → ZWEIMAL
-                        */
 
                         .replace(
                             /zwei\s+mal/g,
                             "zweimal"
                         )
 
-                        /*
-                        DREI MAL → DREIMAL
-                        */
-
                         .replace(
                             /drei\s+mal/g,
                             "dreimal"
                         )
 
-                        /*
-                        VIER MAL → VIERMAL
-                        */
-
                         .replace(
                             /vier\s+mal/g,
                             "viermal"
                         )
-
-                        /*
-                        REIHEN FOLGE
-                        */
 
                         .replace(
                             /reihem\s+folge/g,
@@ -758,8 +750,8 @@ if (!SpeechRecognition) {
                         )
 
                         /*
-                        Einige bereits
-                        getestete Hörfehler
+                        Bereits getestete
+                        Hörfehler
                         */
 
                         .replace(
@@ -822,12 +814,6 @@ if (!SpeechRecognition) {
                 }
 
 
-                /*
-                Jetzt an die
-                Phasenverarbeitung
-                übergeben.
-                */
-
                 verarbeiteSprache(
                     text
                 );
@@ -887,250 +873,231 @@ if (!SpeechRecognition) {
         }
 
 
-       /* ================================================
-   PHASE 1
-   KARTENFARBE
-   ================================================ */
+        /* ================================================
+           PHASE 1
+           KARTENFARBE
+           ================================================ */
 
-if (
-    phase === 1
-) {
+        if (
+            phase === 1
+        ) {
 
-    /*
-    Sprachfragmente sammeln.
-    */
+            /*
+            Sprachfragmente sammeln.
+            */
 
-    phase1Text +=
-        " " + text;
+            phase1Text +=
+                " " + text;
 
 
-    /*
-    Reihenfolge auch über
-    getrennte Ergebnisse
-    zusammensetzen.
-    */
+            /*
+            REIHEN FOLGE
+            zusammenführen.
+            */
 
-    phase1Text =
-        phase1Text.replace(
-            /reihen\s+folge/g,
-            "reihenfolge"
-        );
+            phase1Text =
+                phase1Text.replace(
+                    /reihen\s+folge/g,
+                    "reihenfolge"
+                );
 
 
-    /*
-    KARTENFARBE
-    */
+            /*
+            KARTENFARBE
+            */
 
-    if (
-        phase1Text.includes(
-            "passiert"
-        )
-    ) {
+            if (
+                phase1Text.includes(
+                    "passiert"
+                )
+            ) {
 
-        kartenFarbe =
-            "Pik ♠";
+                kartenFarbe =
+                    "Pik ♠";
 
 
-    } else if (
-        phase1Text.includes(
-            "geschehen"
-        )
-    ) {
+            } else if (
+                phase1Text.includes(
+                    "geschehen"
+                )
+            ) {
 
-        kartenFarbe =
-            "Herz ♥";
+                kartenFarbe =
+                    "Herz ♥";
 
 
-    } else if (
-        phase1Text.includes(
-            "gewesen"
-        )
-    ) {
+            } else if (
+                phase1Text.includes(
+                    "gewesen"
+                )
+            ) {
 
-        kartenFarbe =
-            "Kreuz ♣";
+                kartenFarbe =
+                    "Kreuz ♣";
 
 
-    } else if (
-        phase1Text.includes(
-            "gehabt"
-        )
-    ) {
+            } else if (
+                phase1Text.includes(
+                    "gehabt"
+                )
+            ) {
 
-        kartenFarbe =
-            "Karo ♦";
-    }
+                kartenFarbe =
+                    "Karo ♦";
+            }
 
 
-    /*
-    Farbe gefunden
-    */
+            /*
+            Farbe gefunden
+            */
 
-    if (
-        kartenFarbe !== ""
-    ) {
+            if (
+                kartenFarbe !== ""
+            ) {
 
-        logToConsole(
-            "🃏 KARTENFARBE: " +
-            kartenFarbe
-        );
+                logToConsole(
+                    "🃏 KARTENFARBE: " +
+                    kartenFarbe
+                );
 
 
-        phase = 2;
+                phase = 2;
 
 
-        /*
-        WICHTIG:
-        Phase 2 beginnt mit einem
-        komplett leeren Puffer.
+                /*
+                Ganz wichtig:
+                Phase 2 bekommt einen
+                leeren Puffer.
+                */
 
-        Dadurch kann ein Wort wie
-        „Reihenfolge“, „Deck“ oder
-        „Karten“ aus dem vorherigen
-        Satz NICHT sofort Phase 3
-        auslösen.
-        */
+                phase2Text =
+                    "";
 
-        phase2Text =
-            "";
 
+                logToConsole(
+                    "PHASE 2: CODEWÖRTER ZÄHLEN"
+                );
 
-        logToConsole(
-            "PHASE 2: CODEWÖRTER ZÄHLEN"
-        );
 
+                return;
+            }
 
-        /*
-        KEINE weitere Prüfung
-        auf „Reihenfolge“ hier!
-        */
 
-        return;
-    }
+            return;
+        }
 
 
-    return;
-}
-/* ================================================
-   PHASE 2
-   CODEWÖRTER + REIHENFOLGE
-   ================================================ */
+        /* ================================================
+           PHASE 2
+           CODEWÖRTER + REIHENFOLGE
+           ================================================ */
 
-if (
-    phase === 2
-) {
+        if (
+            phase === 2
+        ) {
 
-    /*
-    Alle Sprachfragmente aus Phase 2 sammeln.
-    */
+            /*
+            Alle Sprachfragmente sammeln.
+            */
 
-    phase2Text +=
-        " " + text;
+            phase2Text +=
+                " " + text;
 
 
-    /*
-    Getrennt gehörtes
-    REIHEN FOLGE
-    zusammenführen.
-    */
+            /*
+            Getrennt gehörtes
+            REIHEN FOLGE zusammenführen.
+            */
 
-    phase2Text =
-        phase2Text.replace(
-            /reihen\s+folge/g,
-            "reihenfolge"
-        );
+            phase2Text =
+                phase2Text.replace(
+                    /reihen\s+folge/g,
+                    "reihenfolge"
+                );
 
 
-    /*
-    ================================================
-    CODEWÖRTER AUSWERTEN
-    ================================================
-    */
+            /*
+            AKTUELLES SPRACHFRAGMENT
+            nach Codewörtern durchsuchen.
 
-    verarbeiteCodewoerter(
-        text
-    );
+            Wichtig:
+            verarbeiteCodewoerter()
+            erkennt nur:
 
+            einmal
+            zweimal
+            dreimal
+            viermal
+            hand
+            händen
 
-    /*
-    ================================================
-    ÜBERGANG ZU PHASE 3
-    ================================================
+            Reine Zahlen wie
+            „eins“, „zwei“, „drei“
+            werden hier NICHT gezählt.
+            */
 
-    Das Schlüsselwort „Reihenfolge“ reicht alleine.
+            verarbeiteCodewoerter(
+                text
+            );
 
-    Falls „Reihenfolge“ nicht sauber erkannt wurde,
-    können auch Kombinationen mit KARTEN oder DECK
-    den Übergang auslösen.
 
-    Wichtig:
-    Nur „Karten“ oder nur „Deck“ reicht NICHT.
-    Dazu muss auch „bestimmt“ gehört worden sein.
-    */
+            /*
+            REIHENFOLGE / KARTENFOLGE
+            */
 
+            const reihenfolgeErkannt =
+                phase2Text.includes(
+                    "reihenfolge"
+                );
 
-    const reihenfolgeErkannt =
-        phase2Text.includes(
-            "reihenfolge"
-        );
 
+            const folgeKartenErkannt =
+                phase2Text.includes("folge") &&
+                phase2Text.includes("karten") &&
+                phase2Text.includes("bestimmt");
 
-    const folgeKartenErkannt =
-        phase2Text.includes("folge") &&
-        phase2Text.includes("karten") &&
-        phase2Text.includes("bestimmt");
 
+            const kartenDeckBestimmt =
+                phase2Text.includes("karten") &&
+                phase2Text.includes("deck") &&
+                phase2Text.includes("bestimmt");
 
-    const kartenBestimmt =
-        phase2Text.includes("karten") &&
-        phase2Text.includes("bestimmt");
 
+            if (
+                reihenfolgeErkannt ||
+                folgeKartenErkannt ||
+                kartenDeckBestimmt
+            ) {
 
-    const deckBestimmt =
-        phase2Text.includes("deck") &&
-        phase2Text.includes("bestimmt");
+                phase = 3;
 
+                phase3Text = "";
 
-    /*
-    ================================================
-    PHASE 3 AUSLÖSEN
-    ================================================
-    */
 
-    if (
-        reihenfolgeErkannt ||
-        folgeKartenErkannt ||
-        kartenBestimmt ||
-        deckBestimmt
-    ) {
+                logToConsole(
+                    "🔒 KARTENFOLGE / REIHENFOLGE ERKANNT"
+                );
 
-        phase = 3;
 
-        phase3Text = "";
+                logToConsole(
+                    "KARTENWERT FESTGESETZT: " +
+                    kartenWert
+                );
 
 
-        logToConsole(
-            "🔒 REIHENFOLGE / KARTEN / DECK ERKANNT"
-        );
+                logToConsole(
+                    "PHASE 3: NAME / DATUM"
+                );
 
 
-        logToConsole(
-            "KARTENWERT FESTGESETZT: " +
-            kartenWert
-        );
+                return;
+            }
 
 
-        logToConsole(
-            "PHASE 3: NAME / DATUM"
-        );
+            return;
+        }
 
 
-        return;
-    }
-
-
-    return;
-}
         /* ================================================
            PHASE 3
            NAME / DATUM / HEUTE / VERDECKT
@@ -1460,9 +1427,8 @@ if (
 
 
                 /*
-                HIER darf die
                 Spracherkennung
-                endgültig ausgehen.
+                endgültig beenden.
                 */
 
                 recognition.stop();
@@ -1479,10 +1445,6 @@ if (
 
     /* =====================================================
        MIKROFON-RESTART
-
-       WICHTIG:
-       Dieser Block steht AUSSERHALB
-       von verarbeiteSprache().
        ===================================================== */
 
     let neustartTimer = null;
@@ -1547,11 +1509,6 @@ if (
 
                         recognition.start();
 
-
-                        /*
-                        Sperre nach erfolgreichem
-                        Start wieder freigeben.
-                        */
 
                         setTimeout(
                             () => {
